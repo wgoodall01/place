@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const WebSocket = require("ws");
 const sqlite3 = require("sqlite3").verbose();
 
@@ -5,7 +6,7 @@ let db = new sqlite3.Database("place.sqlite3");
 const schema = "CREATE TABLE IF NOT EXISTS place (y INTEGER, x INTEGER, color INTEGER, author STRING);";
 
 function listenForMessages(){
-	let sock = new WebSocket("wss://ws-03b4e6be50118f83c.wss.redditmedia.com/place?m=AQAAqqbeWIAJRpBVybeEKvxIE6geiHX5NTcIYDOtwBGbMBKAka4T")
+	let sock = new WebSocket("wss://ws-0330dc1baef1afe1f.wss.redditmedia.com/place?m=AQAA6s7eWGEe24IIZkxUFRlPBhZDvrutpm__ZqyWkHciVeXRnNY3")
 	const placeInsert = db.prepare("INSERT INTO place VALUES(?, ?, ?, ?);");
 	sock.on("message", (dataStr, flags) => {
 		data = JSON.parse(dataStr);
