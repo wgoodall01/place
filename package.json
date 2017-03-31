@@ -1,0 +1,12 @@
+{
+  "name": "place-logger",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "bufferutil": "^3.0.0",
+    "sqlite3": "^3.1.8",
+    "utf-8-validate": "^3.0.1",
+    "ws": "^2.2.2"
+  }
+}
