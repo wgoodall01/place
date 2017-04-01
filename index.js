@@ -57,6 +57,7 @@ function handleSocketMessage(dataStr, flags){
 	const {payload, type} = data;
 
 	switch(type){
+		case "batch-place":
 		case "place":
 			let pixels = payload instanceof Array? payload : [payload]
 
