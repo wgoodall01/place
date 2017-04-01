@@ -1,3 +1,3 @@
-place.sqlite3
 node_modules
 .tern-port
+*.sqlite3*
