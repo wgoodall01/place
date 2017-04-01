@@ -73,7 +73,7 @@ function handleSocketMessage(dataStr, flags){
 			}
 
 			break;
-		case "count":
+		case "activity":
 			countInsert.run(payload.count, (err)=>{if(err){console.log(err);}});
 		default:
 			otherInsert.run(JSON.stringify(payload), (err)=>{if(err){console.log(err);}});
