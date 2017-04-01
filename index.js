@@ -2,16 +2,19 @@
 const WebSocket = require("ws");
 const sqlite3 = require("sqlite3").verbose();
 const getUrl = require("./getUrl");
+const request = require("request");
 
 let db = new sqlite3.Database("place.sqlite3");
 
 const sql_place = `INSERT INTO place(x,y,color,author) VALUES (?,?,?,?);`;
 const sql_count = `INSERT INTO count(count) VALUES (?);`;
-const sql_other = `INSERT INTO other(json) VALUES (?);`
+const sql_other = `INSERT INTO other(json) VALUES (?);`;
+const sql_bitmap = `INSERT INTO bitmap(bitmap) VALUES (?);`;
 
 var placeInsert = null;
 var countInsert = null;
 var otherInsert = null;
+var bitmapInsert = null;
 function dbSetup(cb){
 	db.serialize();
 	db.run(`
@@ -44,11 +47,20 @@ function dbSetup(cb){
 			json STRING
 		);
 	`);
+
+	db.run(`
+		CREATE TABLE IF NOT EXISTS bitmap(
+			id INTEGER NOT NULL PRIMARY KEY,
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+			bitmap BLOB
+		);
+	`)
 	
-	let prepOther = () => {otherInsert = db.prepare(sql_other, cb);};
-	let prepCount = () => {countInsert = db.prepare(sql_count, prepOther)};
-	let prepPlace = () => {placeInsert = db.prepare(sql_place, prepCount)};
-	db.parallelize(prepPlace);
+	otherInsert = db.prepare(sql_other)
+	bitmapInsert = db.prepare(sql_bitmap)
+	countInsert = db.prepare(sql_count)
+	placeInsert = db.prepare(sql_place)
+	db.parallelize(cb);
 }
 
 
@@ -83,6 +95,19 @@ function handleSocketMessage(dataStr, flags){
 	}
 }
 
+function fetchBitmap(cb){
+	console.log("Fetching bitmap...");
+	request({
+		method:"GET",
+		url:"https://www.reddit.com/api/place/board-bitmap?robot=github-wgoodall01-place",
+		encoding:null,
+	}, function(err, resp, body){
+		if(err){console.log(err); return;}
+		bitmapInsert.run(body, (err)=>{if(err){console.log(err);}});
+		console.log("Bitmap fetched.");
+	})
+}
+
 function connectToSocket(url){
 	let sock = new WebSocket(url);
 	sock.on("open", ()=>{console.log("Connected.")});
@@ -99,5 +124,8 @@ function start(){
 }
 
 // Run the schema, then start listening.
-
 dbSetup(start);
+
+// Fetch the bitmap every min.
+fetchBitmap();
+setInterval(fetchBitmap, 1000 * 60);
