@@ -75,6 +75,7 @@ function handleSocketMessage(dataStr, flags){
 			break;
 		case "activity":
 			countInsert.run(payload.count, (err)=>{if(err){console.log(err);}});
+			break;
 		default:
 			otherInsert.run(JSON.stringify(payload), (err)=>{if(err){console.log(err);}});
 			console.log(`Unknown message (type="${type}"):`);
