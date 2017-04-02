@@ -8,6 +8,7 @@ const pmx = require("pmx");
 const probe = pmx.probe();
 const placeMeter = probe.meter({name:"Place/sec", samples:1});
 const dbMeter = probe.meter({name: "DB inserts/sec", samples:1});
+const batchMetric = probe.metric({name:"DB insert batch size"});
 const otherMeter = probe.meter({name:"Other events/sec", samples:1});
 
 let db = new sqlite3.Database("place.sqlite3");
@@ -73,6 +74,7 @@ function dbSetup(cb){
 let placeInsertBuffer = [];
 
 function writePlaceToDB(){
+	batchMetric.set(placeInsertBuffer.length);
 	db.serialize();
 	db.run("BEGIN TRANSACTION;");
 	
@@ -151,7 +153,10 @@ function connectToSocket(url){
 
 function start(){
 	console.log("Connecting...");
-	getUrl(url => connectToSocket(url));
+	getUrl((err, url) => {
+		if(err){console.log(err); setTimeout(start, 1000);}
+		else{connectToSocket(url);}
+	});
 }
 
 // Run the schema, then start listening.
