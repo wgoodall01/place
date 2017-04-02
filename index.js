@@ -91,6 +91,7 @@ function writePlaceToDB(){
 	}
 
 	db.run("COMMIT;");
+	db.parallelize();
 	placeInsertBuffer = [];
 }
 
