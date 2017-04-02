@@ -3,6 +3,13 @@ const WebSocket = require("ws");
 const sqlite3 = require("sqlite3").verbose();
 const getUrl = require("./getUrl");
 const request = require("request");
+const pmx = require("pmx");
+
+const probe = pmx.probe();
+const wsMeter = probe.meter({name:"WS Events/sec", samples:1});
+const placeMeter = probe.meter({name:"Place/sec", samples:1});
+const bitmapMeter= probe.meter({name:"Bitmap fetches/min", samples:60});
+const otherMeter = probe.meter({name:"Other events/sec", samples:1});
 
 let db = new sqlite3.Database("place.sqlite3");
 
@@ -65,6 +72,7 @@ function dbSetup(cb){
 
 
 function handleSocketMessage(dataStr, flags){
+	wsMeter.mark();
 	data = JSON.parse(dataStr);
 	const {payload, type} = data;
 
@@ -80,15 +88,20 @@ function handleSocketMessage(dataStr, flags){
 					pix.y, 
 					pix.color, 
 					pix.author, 
-					(err)=>{if(err){console.log(err);}}
+					(err)=>{
+						if(err){console.log(err);}
+						else{placeMeter.mark();}
+					}
 				);
 			}
 
 			break;
 		case "activity":
+			otherMeter.mark();
 			countInsert.run(payload.count, (err)=>{if(err){console.log(err);}});
 			break;
 		default:
+			otherMeter.mark();
 			otherInsert.run(JSON.stringify(payload), (err)=>{if(err){console.log(err);}});
 			console.log(`Unknown message (type="${type}"):`);
 			console.dir(payload);
@@ -103,8 +116,16 @@ function fetchBitmap(cb){
 		encoding:null,
 	}, function(err, resp, body){
 		if(err){console.log(err); return;}
-		bitmapInsert.run(body, (err)=>{if(err){console.log(err);}});
-		console.log("Bitmap fetched.");
+		bitmapInsert.run(
+			body, 
+			(err)=>{
+				if(err){console.log(err);}
+				else{
+					bitmapMeter.mark();
+					console.log("Bitmap fetched.")
+				};
+			}
+		);
 	})
 }
 
