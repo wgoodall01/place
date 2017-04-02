@@ -161,5 +161,5 @@ dbSetup(start);
 fetchBitmap();
 setInterval(fetchBitmap, 1000 * 60);
 
-// Write buf to DB every second.
-setInterval(writePlaceToDB, 1000 * 1);
+// Write buf to DB every 3 seconds.
+setInterval(writePlaceToDB, 1000 * 3);
