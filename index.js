@@ -6,9 +6,8 @@ const request = require("request");
 const pmx = require("pmx");
 
 const probe = pmx.probe();
-const wsMeter = probe.meter({name:"WS Events/sec", samples:1});
 const placeMeter = probe.meter({name:"Place/sec", samples:1});
-const bitmapMeter= probe.meter({name:"Bitmap fetches/min", samples:60});
+const dbMeter = probe.meter({name: "DB inserts/sec", samples:1});
 const otherMeter = probe.meter({name:"Other events/sec", samples:1});
 
 let db = new sqlite3.Database("place.sqlite3");
@@ -71,30 +70,41 @@ function dbSetup(cb){
 }
 
 
+let placeInsertBuffer = [];
+
+function writePlaceToDB(){
+	db.serialize();
+	db.run("BEGIN TRANSACTION;");
+	
+	for(var i = 0; i<placeInsertBuffer.length; i++){
+		let pix = placeInsertBuffer[i];
+		placeInsert.run(
+			pix.x, 
+			pix.y, 
+			pix.color, 
+			pix.author, 
+			(err)=>{
+				if(err){console.log(err);}
+				else{dbMeter.mark();}
+			}
+		);
+	}
+
+	db.run("COMMIT;");
+	placeInsertBuffer = [];
+}
+
+
 function handleSocketMessage(dataStr, flags){
-	wsMeter.mark();
 	data = JSON.parse(dataStr);
 	const {payload, type} = data;
 
 	switch(type){
 		case "batch-place":
 		case "place":
+			placeMeter.mark();
 			let pixels = payload instanceof Array? payload : [payload]
-
-			for(var i = 0; i<pixels.length; i++){
-				let pix = pixels[i];
-				placeInsert.run(
-					pix.x, 
-					pix.y, 
-					pix.color, 
-					pix.author, 
-					(err)=>{
-						if(err){console.log(err);}
-						else{placeMeter.mark();}
-					}
-				);
-			}
-
+			Array.prototype.push.apply(placeInsertBuffer, pixels);
 			break;
 		case "activity":
 			otherMeter.mark();
@@ -121,7 +131,6 @@ function fetchBitmap(cb){
 			(err)=>{
 				if(err){console.log(err);}
 				else{
-					bitmapMeter.mark();
 					console.log("Bitmap fetched.")
 				};
 			}
@@ -150,3 +159,6 @@ dbSetup(start);
 // Fetch the bitmap every min.
 fetchBitmap();
 setInterval(fetchBitmap, 1000 * 60);
+
+// Write buf to DB every second.
+setInterval(writePlaceToDB, 1000 * 1);
