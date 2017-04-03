@@ -49,7 +49,6 @@ function saveFromDB(id){
 		}else{
 
 			const buf = record.bitmap.slice(HEADER_SIZE);
-			console.log("Got buffer, time " + record.timestamp)
 			// Create img buffer with no alpha channel
 			let img = new PNG({width:WIDTH, height:HEIGHT, colorType:2});
 
@@ -67,8 +66,13 @@ function saveFromDB(id){
 				setPixel(img.data, x1, y1, color1);
 				setPixel(img.data, x2, y2, color2);
 			}
-
-			img.pack().pipe(fs.createWriteStream(`png_export/${record.timestamp}`));
+			const filename = "./png_export/" + record.timestamp
+				.replace(/\ /g, "--")
+				.replace(/\:/g, "-");
+			const fStream = img
+				.pack()
+				.pipe(fs.createWriteStream(filename));
+			fStream.on("finish", ()=>console.log(filename));
 		}
 	});
 }
