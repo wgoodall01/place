@@ -66,7 +66,7 @@ function saveFromDB(id){
 				setPixel(img.data, x1, y1, color1);
 				setPixel(img.data, x2, y2, color2);
 			}
-			const filename = "./png_export/" + record.timestamp
+			const filename = ("./png_export/" + record.timestamp + ".png")
 				.replace(/\ /g, "--")
 				.replace(/\:/g, "-");
 			const fStream = img
