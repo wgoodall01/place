@@ -3,3 +3,5 @@ node_modules
 *.sqlite3*
 export-*.csv
 test.js
+bitmaps.csv
+png_export
